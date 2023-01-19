@@ -24,7 +24,7 @@ async function menu() {
 			{ title: '- Instalar Backdoor', value: 2 },
 			{ title: '- Copiar chave de ativação', value: 3 },
 			{ title: '- Apagar registros', value: 4 },
-			{ title: '- Executar verificação de Disco', value: 5 },
+			{ title: '- Encerrar', value: 0 },
 		],
 		initial: 0,
 	});
@@ -32,6 +32,7 @@ async function menu() {
 	switch (input.value) {
 		case 0:
 			// Se o usuário cancelar
+			console.clear();
 			Deno.exit();
 		/* falls through */
 		case 1:
@@ -48,10 +49,6 @@ async function menu() {
 		case 4:
 			// Limpar registros de arquivos
 			await clearTraces();
-			break;
-		case 5:
-			// Executar verificação de Disco
-			await checkDisk();
 			break;
 	}
 
@@ -159,17 +156,6 @@ async function clearTraces() {
 		// 'recursive' significa que é pra apagar mesmo se tiver pastas e arquivos dentro
 		.then(() => status.end('Registros excluídos.'))
 		.catch((e) => status.fail('Nada para excluir.\n' + e));
-	return;
-}
-
-async function checkDisk() {
-	currentMenu = 'CHECK DISK';
-
-	const status = new Spinner('Verificando integridade...');
-	const res = await executeCommand('chkdsk /r /f d:');
-
-	status.end('Verificação concluída.');
-	console.log(res);
 	return;
 }
 

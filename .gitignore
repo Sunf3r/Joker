@@ -3,7 +3,8 @@
 
 # Production
 WiFiPasswords/
-WindowsKey.txt
+WindowsKeys/
+.tempdata/
 
 # Development
 Test.ts

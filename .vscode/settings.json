@@ -1,6 +1,5 @@
 {
     "deno.enable": true,
-    "deno.unstable": true,
     "deno.importMap": "./import_map.json",
     "editor.defaultFormatter": "denoland.vscode-deno"
     // remova o comentário abaixo para desativar

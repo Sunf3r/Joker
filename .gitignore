@@ -1,0 +1,21 @@
+# Settings
+*.env
+
+# Production
+WiFiPasswords/
+WindowsKey.txt
+
+# Development
+Test.ts
+Test/
+
+# Binaries
+*.exe
+*.jar
+*.bundle
+
+# Logs / Lokefiles
+*lock.json
+*.lock
+*.log
+logs/

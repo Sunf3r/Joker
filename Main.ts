@@ -4,7 +4,8 @@ import colors from '@colors';
 import { delay } from '@std';
 
 // Title.txt contém uma string colorida bem cringe
-const title: string = Deno.readTextFileSync('Title.txt');
+const title: string = await Deno.readTextFile('Title.txt')
+	.catch(() => '');
 
 let currentMenu: string;
 colors;

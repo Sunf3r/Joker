@@ -1,12 +1,11 @@
-import { SpinnerTypes, TerminalSpinner } from '@spinners';
-import gs from 'npm:gradient-string';
-import { DateTime } from '@luxon';
-import prompts from 'npm:prompts';
+import { TerminalSpinner } from '@spinners';
+import { Select } from '@cliffy/select';
 import colors from '@colors';
 import { delay } from '@std';
 
-// Cria uma string colorida com o conteúdo de Title.txt
-const title: string = gs('yellow', 'red')(Deno.readTextFileSync('Title.txt'));
+// Title.txt contém uma string colorida bem cringe
+const title: string = Deno.readTextFileSync('Title.txt');
+
 let currentMenu: string;
 colors;
 menu(); // Abre o menu
@@ -15,38 +14,37 @@ async function menu() {
 	console.clear(); // Limpa o console
 	console.log(title);
 
-	const input = await prompts({ // Solicita uma opção para prosseguir
-		name: 'value',
-		message: 'Escolha uma ferramenta:\n',
-		type: 'select',
-		choices: [
-			{ title: '- Injetar Trojan:WiFiCloner', value: 1 },
-			{ title: '- Instalar Backdoor', value: 2 },
-			{ title: '- Copiar chave de ativação', value: 3 },
-			{ title: '- Apagar registros', value: 4 },
-			{ title: '- Encerrar', value: 0 },
+	// Solicita uma opção para prosseguir
+	const input: string = await Select.prompt({
+		message: 'Escolha uma ferramenta:',
+		options: [
+			{ name: '- Injetar Trojan:WiFiCloner', value: '1' },
+			{ name: '- Instalar Backdoor', value: '2', disabled: true },
+			{ name: '- Copiar chave de ativação', value: '3' },
+			// Select.separator('--------'),
+			{ name: '- Apagar registros', value: '4' },
+			{ name: '- Encerrar', value: '0' },
 		],
-		initial: 0,
 	});
 
-	switch (input.value) {
-		case 0:
+	switch (input) {
+		case '0':
 			// Se o usuário cancelar
 			console.clear();
 			Deno.exit();
 		/* falls through */
-		case 1:
+		case '1':
 			// "injetar trojan" vulgo acessar uma API nativa do Windows
 			await NetSHProfileCollector();
 			break;
-		case 2:
+		case '2':
 			// Instalar backdoor kjkkjkkkjkjkjkkjk
 			break;
-		case 3:
+		case '3':
 			// Copiar key do Windows
 			await copyWinKey();
 			break;
-		case 4:
+		case '4':
 			// Limpar registros de arquivos
 			await clearTraces();
 			break;
@@ -133,7 +131,7 @@ async function copyWinKey() {
 	)).split('\n')[1];
 
 	status.end(
-		`Chave de ativação obtida:\n\n${gs('yellow', 'red')(key)}`,
+		`Chave de ativação obtida:\n\n${key}`,
 	);
 
 	Deno.mkdir('WindowsKeys') //
@@ -143,7 +141,6 @@ async function copyWinKey() {
 		`WindowsKeys/${Deno.hostname()}.txt`,
 		`Machine: ${Deno.hostname()}\nWindows License Key: ${key}`,
 	);
-	await delay(1_000);
 }
 
 async function clearTraces() {
@@ -155,7 +152,7 @@ async function clearTraces() {
 	Deno.remove('.tempdata', { recursive: true })
 		// 'recursive' significa que é pra apagar mesmo se tiver pastas e arquivos dentro
 		.then(() => status.end('Registros excluídos.'))
-		.catch((e) => status.fail('Nada para excluir.\n' + e));
+		.catch(() => status.fail('Nada para excluir.'));
 	return;
 }
 
@@ -184,13 +181,14 @@ async function createFakeStatus(loadingMsg: string, completeMsg: string) {
 
 function clearTags(text: RegExpMatchArray | string | null) {
 	// Regex pra filtrar as tags do XML
-	return String(text).replace(/<\/?[a-z][a-z0-9]*[^<>]*>|<!--.*?-->/gim, '');
+	return String(text)
+		.replace(/<\/?[a-z][a-z0-9]*[^<>]*>|<!--.*?-->/gim, '');
 }
 
 function random() {
 	// Retorna um número aleatório até 2000
-	const value = Math.floor(Math.random() * 2_000);
-	return value < 500 ? value + 500 : value;
+	const value = Math.floor(Math.random() * 3_000);
+	return value < 500 ? value + 1_000 : value;
 }
 
 class Spinner {
@@ -204,8 +202,24 @@ class Spinner {
 		// Inicia Spinner
 		this.spinner = new TerminalSpinner({
 			text: this._format(),
-			spinner: SpinnerTypes.arc,
-			color: 'red',
+			spinner: {
+				interval: 40,
+				frames: [
+					'⠋',
+					'⠙',
+					'⠹',
+					'⠸',
+					'⠼',
+					'⠴',
+					'⠦',
+					'⠧',
+					'⠇',
+					'⠏',
+				],
+			},
+			indent: 2,
+			cursor: true,
+			color: 'cyan',
 		}).start();
 	}
 
@@ -220,21 +234,18 @@ class Spinner {
 	}
 
 	_format() {
+		const date = new Date();
+		const minutes = date.getMinutes() < 10
+			? '0' + date.getMinutes()
+			: date.getMinutes();
+
 		return [ // isso pode parecer meio confuso
 			'[',
-			this.sector.toUpperCase().blue, // [ SECTOR
+			this.sector.toUpperCase().cyan, // [ SECTOR
 			'|',
-			now().toFormat('T').yellow, // [ SECTOR | 18:04
-			'|',
-			// [ SECTOR | 18:04 | 69MB
-			((Deno.memoryUsage().rss / 1024 / 1024).toFixed(2) + 'MB').green,
+			`${date.getHours()}:${minutes}`.yellow, // [ SECTOR | 18:04
 			'] -',
 			this.text,
-		].join(' '); // [ SETOR | 18:04 | 69MB ] - TEXT
+		].join(' '); // [ SETOR | 18:04 ] - TEXT
 	}
 }
-
-const now = () =>
-	DateTime.now()
-		.setZone('America/Sao_Paulo') // horário com o fuso-horário corrigido
-		.setLocale('pt-br'); // Define o idioma da formatação

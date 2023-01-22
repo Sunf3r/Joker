@@ -3,6 +3,6 @@
         "@cliffy/select": "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts",
         "@colors": "https://deno.land/x/console_colors@v0.0.2/mod.ts",
         "@spinners": "https://deno.land/x/spinners@v1.1.2/mod.ts",
-        "@std": "https://deno.land/std@0.136.0/async/mod.ts"
+        "@std": "https://deno.land/std@0.173.0/async/mod.ts"
     }
 }

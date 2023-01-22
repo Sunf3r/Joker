@@ -217,7 +217,7 @@ class Spinner {
 					'⠏',
 				],
 			},
-			indent: 2,
+			indent: 1,
 			cursor: true,
 			color: 'cyan',
 		}).start();

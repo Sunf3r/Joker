@@ -1,11 +1,11 @@
 {
-    "imports": {
-        "@cliffy/keypress": "https://deno.land/x/cliffy@v0.25.7/keypress/mod.ts",
-        "@qrcode": "https://deno.land/x/qrcode_terminal@v1.1.1/mod.js",
-        "@colors": "https://deno.land/x/console_colors@v0.0.2/mod.ts",
-        "@spinners": "https://deno.land/x/spinners@v1.1.2/mod.ts",
-        "@luxon": "https://moment.github.io/luxon/es6/luxon.js",
-        "@std": "https://deno.land/std@0.173.0/async/mod.ts",
-        "@dax": "https://deno.land/x/dax@0.28.0/mod.ts"
-    }
+	"imports": {
+		"@cliffy/keypress": "https://deno.land/x/cliffy@v0.25.7/keypress/mod.ts",
+		"@colors": "https://deno.land/x/console_colors@v0.0.2/mod.ts",
+		"@spinners": "https://deno.land/x/spinners@v1.1.2/mod.ts",
+		"@luxon": "https://moment.github.io/luxon/es6/luxon.js",
+		"@qrcode": "https://deno.land/x/qrcode@v2.0.0/mod.ts",
+		"@std": "https://deno.land/std@0.173.0/async/mod.ts",
+		"@dax": "https://deno.land/x/dax@0.28.0/mod.ts"
+	}
 }

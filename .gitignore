@@ -2,9 +2,9 @@
 *.env
 
 # Production
-WiFiPasswords/
-WindowsKeys/
-.tempdata/
+data/W*
+temp/
+sus/
 
 # Development
 Test.ts

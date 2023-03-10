@@ -1,8 +1,12 @@
 {
     "deno.enable": true,
     "deno.importMap": "./import_map.json",
-    "editor.defaultFormatter": "denoland.vscode-deno"
-    // remova o comentário abaixo para desativar
-    // a exibição de tipos em variáveis
-    // "deno.inlayHints.variableTypes.enabled": false
+    "editor.defaultFormatter": "denoland.vscode-deno",
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features"
+    },
+    // pra desativar a exibição de tipos em variáveis
+    // defina os valores abaixo como false
+    "deno.inlayHints.variableTypes.enabled": true,
+    "deno.inlayHints.parameterNames.suppressWhenArgumentMatchesName": true,
 }

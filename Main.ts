@@ -7,7 +7,7 @@ import colors from '@colors';
 import $ from '@dax';
 
 let showLogs = !Deno.args.includes('-q');
-let key: string; // Windows License Key
+let key = ''; // Windows License Key
 let c = 0; // network counter
 colors;
 

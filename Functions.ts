@@ -47,14 +47,9 @@ export function createHTML(title: string, body: string) {
 }
 
 export async function checkDirs() {
-	await Deno.mkdir('data').catch(() => {});
+	const folders = ['data', 'temp', 'data/WiFiPasswords', 'data/WindowsKeys'];
 
-	// Pasta para onde vão os arquivos do NetSH
-	await Deno.mkdir('temp').catch(() => {});
-
-	// Pasta onde serão salva as senhas
-	await Deno.mkdir('data/WiFiPasswords').catch(() => {});
-
-	// Pasta de chaves de licença
-	await Deno.mkdir('data/WindowsKeys').catch(() => {});
+	for (const f of folders) {
+		await Deno.mkdir(f).catch(() => {});
+	}
 }

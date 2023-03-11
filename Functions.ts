@@ -1,6 +1,6 @@
 import { DateTime } from '@luxon';
 
-export function random(min = 500, max = 2_500) {
+export function rand(min = 500, max = 2_500) {
 	return Math.floor(Math.random() * (max - min) + min);
 }
 
@@ -33,9 +33,7 @@ export function createHTML(title: string, body: string) {
 		['<s', '<strong>'],
 		['s>', '</strong>'],
 	];
-	for (const factor of factors) {
-		body = body.replaceAll(factor[0], factor[1]);
-	}
+	for (const factor of factors) body = body.replaceAll(factor[0], factor[1]);
 
 	return `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>
 	<meta charset="UTF-8">
@@ -49,7 +47,5 @@ export function createHTML(title: string, body: string) {
 export async function checkDirs() {
 	const folders = ['data', 'temp', 'data/WiFiPasswords', 'data/WindowsKeys'];
 
-	for (const f of folders) {
-		await Deno.mkdir(f).catch(() => {});
-	}
+	for (const f of folders) await Deno.mkdir(f).catch(() => {});
 }

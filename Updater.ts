@@ -22,7 +22,7 @@ try {
 	);
 
 	for (const f of files) {
-		if (!f.endsWith('.ts')) continue; // Apenas arquivos .TS
+		if (!f.endsWith('.ts') && !f.endsWith('.vbs')) continue; // Apenas arquivos .TS e .VBS
 		if (Deno.args.includes('--dev') && f === 'Updater.ts') continue;
 		// Não atualizar o updater enquanto estiver em dev time
 

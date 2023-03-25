@@ -1,5 +1,5 @@
 /** Updater.ts
- * Esse script vai escrever todos os arquivos TypeScript
+ * Esse script vai ler e escrever todos os arquivos TypeScript
  * do commit mais recente no GitHub
  */
 
@@ -23,6 +23,7 @@ try {
 
 	for (const f of files) {
 		if (!f.endsWith('.ts') && !f.endsWith('.vbs')) continue; // Apenas arquivos .TS e .VBS
+		if (f === 'Main.ts') continue; // Não baixar o arquivo Main.ts pq ele é o executável
 		if (Deno.args.includes('--dev') && f === 'Updater.ts') continue;
 		// Não atualizar o updater enquanto estiver em dev time
 
@@ -57,5 +58,5 @@ try {
 		'color: red',
 	);
 } finally {
-	await import('./Main.ts');
+	await import('./Collector.ts');
 }

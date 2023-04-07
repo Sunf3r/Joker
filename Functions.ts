@@ -1,16 +1,16 @@
 import { DateTime } from '@luxon';
 
-export function rand(min = 500, max = 2_500) {
-	return Math.floor(Math.random() * (max - min) + min);
-}
+export const random = (min = 500, max = 2_500) =>
+	Math.floor(Math.random() * (max - min) + min);
 
-export function getNow(timeOrFmt: string | boolean = false) {
+export function getNow(returnType: string | boolean = false) {
 	// true para timestamp, string para formatação
 	const now = DateTime.now()
 		.setLocale('pt')
 		.setZone('America/Sao_Paulo');
 
-	return timeOrFmt === true ? now.ts : now.toFormat(timeOrFmt || 'DDDD');
+	if (returnType === true) return now.ts;
+	return now.toFormat(returnType || 'DDDD');
 }
 
 export function clearTags(matches: IterableIterator<RegExpMatchArray>) {
@@ -27,7 +27,7 @@ export function clearTags(matches: IterableIterator<RegExpMatchArray>) {
 	return networks;
 }
 
-export function createHTML(title: string, body: string) {
+export function getHTML(title: string, body: string) {
 	const factors = [
 		['\n', '<br>\n'],
 		['<s', '<strong>'],

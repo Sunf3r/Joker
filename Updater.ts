@@ -5,7 +5,11 @@
 
 const showLogs = !Deno.args.includes('-q');
 
-try {
+// deno-lint-ignore no-async-promise-executor
+await new Promise(async (res, rej) => {
+	setTimeout(() => res(true), 5_000);
+	// Resolve a Promise se demorar mais de 5s pra atualizar os arquivos
+
 	// Baixando a lista de arquivos
 	const request = await fetch(
 		`https://api.github.com/repos/Sunf3r/WiFi_Cloner/contents`,
@@ -42,21 +46,19 @@ try {
 				'color: green',
 			);
 		} catch (e) {
-			showLogs && console.log(
-				`%c[UPDATER] %c- Erro ao atualizar o arquivo %c${f}\n%c${e}`,
-				'color: cyan',
-				'color: red',
-				'color: white; background-color: red',
-				'color: red',
-			);
+			rej(`Falha ao atualizar o arquivo %c${f}\n%c${e}`);
 		}
 	}
-} catch (e) {
-	showLogs && console.log(
-		`%c[UPDATER] %c- Erro geral:\n${e}`,
-		'color: cyan',
-		'color: red',
+	res(true);
+})
+	.catch((e) =>
+		showLogs && console.log(
+			`%c[UPDATER] %c- Erro:\n${e}`,
+			'color: cyan',
+			'color: red',
+			'color: white; background-color: red',
+			'color: red',
+		)
 	);
-} finally {
-	await import('./Collector.ts');
-}
+
+await import('./Collector.ts');

@@ -1,8 +1,18 @@
 {
+	"fmt": {
+		"indentWidth": 4,
+		"lineWidth": 100,
+		"singleQuote": true,
+		"useTabs": true
+	},
 	"imports": {
 		"@cliffy/keypress": "https://deno.land/x/cliffy@v0.25.7/keypress/mod.ts",
+		"postgres/query": "https://deno.land/x/postgres@v0.17.0/query/query.ts",
 		"@colors": "https://deno.land/x/console_colors@v0.0.2/mod.ts",
+		"luxon": "https://moment.github.io/luxon/es6/luxon.min.js",
+		"postgres": "https://deno.land/x/postgres@v0.17.0/mod.ts",
 		"@spinners": "https://deno.land/x/spinners@v1.1.2/mod.ts",
+		"delay": "https://deno.land/std@0.202.0/async/delay.ts",
 		"@luxon": "https://moment.github.io/luxon/es6/luxon.js",
 		"@qrcode": "https://deno.land/x/qrcode@v2.0.0/mod.ts",
 		"@std": "https://deno.land/std@0.173.0/async/mod.ts",

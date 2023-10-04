@@ -5,10 +5,6 @@
 data/W*
 temp/
 
-# Development
-Test.ts
-Test/
-
 # Binaries
 *.exe
 *.jar

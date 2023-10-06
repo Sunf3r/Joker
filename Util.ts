@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { delay } from 'std';
 
-export function getNow(returnType: string | boolean = false) {
+export function now(returnType: string | boolean = false) {
 	// true para timestamp, string para formatação
 	const now = DateTime.now()
 		.setLocale('pt')

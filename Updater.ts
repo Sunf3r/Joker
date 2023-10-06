@@ -21,6 +21,8 @@ interface GitFile {
 	};
 }
 
+localStorage.setItem('showLogs', 'true');
+
 async function silentMode(res: (value: unknown) => void) {
 	for await (const event of keypress()) {
 		if (event.key === 'escape') Deno.exit();

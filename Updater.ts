@@ -1,6 +1,9 @@
 /** Updater.ts
  * This script downloads all files from my last commit in GH
  */
+import { keypress } from 'cliffy/keypress';
+import { showLogs } from './Util.ts';
+
 interface GitFile {
 	name: string;
 	path: string;
@@ -18,7 +21,18 @@ interface GitFile {
 	};
 }
 
-const showLogs = !Deno.args.includes('-q');
+async function silentMode(res: (value: unknown) => void) {
+	for await (const event of keypress()) {
+		if (event.key === 'escape') Deno.exit();
+
+		// quando a tecla Q for pressionada
+		if (event.key === 'q') localStorage.setItem('showLogs', '');
+		// ativa o quiet mode
+
+		if (event.key === 's') res(true);
+		// Skip the updater
+	}
+}
 
 async function getUpdates(path: string) {
 	// Fetch file list
@@ -31,7 +45,8 @@ async function getUpdates(path: string) {
 		if (f.type === 'dir') {
 			await Deno.mkdir(`./${f.path}`, { recursive: true });
 
-			files.push(...(await getUpdates(`${path}/${f.name}`)));
+			const subFiles = await getUpdates(`${path}/${f.name}`);
+			files.push(...subFiles);
 			continue;
 		}
 
@@ -43,20 +58,17 @@ async function getUpdates(path: string) {
 
 // deno-lint-ignore no-async-promise-executor
 await new Promise(async (res, rej) => {
-	setTimeout(() => res(true), 5_000);
-	// Resolve the promise if the download take more than 5 seconds
+	silentMode(res);
 
 	const files = await getUpdates(`https://api.github.com/repos/Sunf3r/Joker/contents`);
 
-	showLogs && console.log(
+	showLogs() && console.log(
 		`%c[UPDATER] %c- ${files!.length} files found.`,
 		'color: cyan;',
 		'color: green;',
 	);
 
 	for (const f of files!) {
-		console.log(f.name);
-
 		if (f.name === 'Main.ts') continue; // Don't download Main.ts
 		if (Deno.args.includes('--dev') && f.name === 'Updater.ts') continue;
 		// Don't download Updater.ts in dev time
@@ -68,8 +80,8 @@ await new Promise(async (res, rej) => {
 			// Write the file
 			await Deno.writeTextFile(f.path, await content.text());
 
-			showLogs && console.log(
-				`%c[UPDATER] %c- ${f.name} update.`,
+			showLogs() && console.log(
+				`%c[UPDATER] %c- ${f.name} updated.`,
 				'color: cyan',
 				'color: green',
 			);
@@ -81,7 +93,7 @@ await new Promise(async (res, rej) => {
 	res(true);
 })
 	.catch((e) =>
-		showLogs && console.log(
+		showLogs() && console.log(
 			`%c[UPDATER] %c- ${e}`,
 			'color: cyan',
 			'color: red',
@@ -90,4 +102,4 @@ await new Promise(async (res, rej) => {
 		)
 	);
 
-// await import('./Collector.ts');
+await import('./Collector.ts');

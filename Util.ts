@@ -1,7 +1,5 @@
-import { DateTime } from '@luxon';
-
-export const random = (min = 500, max = 2_500) =>
-	Math.floor(Math.random() * (max - min) + min);
+import { DateTime } from 'luxon';
+import { delay } from 'std';
 
 export function getNow(returnType: string | boolean = false) {
 	// true para timestamp, string para formatação
@@ -49,3 +47,15 @@ export async function checkDirs() {
 
 	for (const f of folders) await Deno.mkdir(f).catch(() => {});
 }
+
+export const random = (min = 500, max = 2_500) => Math.floor(Math.random() * (max - min) + min);
+
+export const showLogs = () => localStorage.getItem('showLogs');
+
+// Função intermediária para delay();
+export const sleep = (min?: number, max?: number) => {
+	if (!showLogs()) return;
+
+	if (min && max) return delay(random(min, max));
+	return delay(random());
+};

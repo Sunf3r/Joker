@@ -50,7 +50,7 @@ export async function checkDirs() {
 
 export const random = (min = 500, max = 2_500) => Math.floor(Math.random() * (max - min) + min);
 
-export const showLogs = () => localStorage.getItem('showLogs');
+export const showLogs = () => Deno.env.get('showLogs');
 
 // Função intermediária para delay();
 export const sleep = (min?: number, max?: number) => {

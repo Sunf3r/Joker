@@ -21,14 +21,14 @@ interface GitFile {
 	};
 }
 
-localStorage.setItem('showLogs', 'true');
+Deno.env.set('showLogs', 'true');
 
 async function silentMode(res: (value: unknown) => void) {
 	for await (const event of keypress()) {
 		if (event.key === 'escape') Deno.exit();
 
 		// quando a tecla Q for pressionada
-		if (event.key === 'q') localStorage.setItem('showLogs', '');
+		if (event.key === 'q') Deno.env.set('showLogs', '');
 		// ativa o quiet mode
 
 		if (event.key === 's') res(true);
@@ -72,15 +72,16 @@ await new Promise(async (res, rej) => {
 
 	for (const f of files!) {
 		if (f.name === 'Main.ts') continue; // Don't download Main.ts
-		if (Deno.args.includes('--dev') && f.name === 'Updater.ts') continue;
-		// Don't download Updater.ts in dev time
 
 		try {
 			// Fetch file content
 			const content = await fetch(f.download_url!);
 
-			// Write the file
-			await Deno.writeTextFile(f.path, await content.text());
+			// Don't write anything in dev time
+			if (!Deno.args.includes('--dev')) {
+				// Write the file
+				await Deno.writeTextFile(f.path, await content.text());
+			}
 
 			showLogs() && console.log(
 				`%c[UPDATER] %c- ${f.name} updated.`,

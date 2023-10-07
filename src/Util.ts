@@ -43,7 +43,7 @@ export function getHTML(title: string, body: string) {
 }
 
 export async function checkDirs() {
-	const folders = ['data', 'temp', 'data/WiFiPasswords', 'data/WindowsKeys'];
+	const folders = ['temp', './WiFiPasswords', './WindowsKeys'];
 
 	for (const f of folders) await Deno.mkdir(f).catch(() => {});
 }

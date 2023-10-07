@@ -4,24 +4,8 @@
 import { keypress } from 'cliffy/keypress';
 import { showLogs } from './Util.ts';
 
-interface GitFile {
-	name: string;
-	path: string;
-	sha: string;
-	size: number;
-	url: string;
-	html_url: string;
-	git_url: string;
-	download_url: string | null;
-	type: 'dir' | 'file';
-	_links: {
-		self: string;
-		git: string;
-		html: string;
-	};
-}
-
 Deno.env.set('showLogs', 'true');
+const ignoredFiles = ['Main.ts', '.gitignore', 'README.md', '.vscode', 'deno.json'];
 
 async function silentMode(res: (value: unknown) => void) {
 	for await (const event of keypress()) {
@@ -44,6 +28,8 @@ async function getUpdates(path: string) {
 
 	const files: GitFile[] = [];
 	for (const f of data) {
+		if (ignoredFiles.includes(f.name)) continue;
+
 		if (f.type === 'dir') {
 			await Deno.mkdir(`./${f.path}`, { recursive: true });
 

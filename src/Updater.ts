@@ -1,10 +1,11 @@
 /** Updater.ts
  * This script downloads all files from my last commit in GH
  */
+import type { GitFile } from './index.d.ts';
 import { keypress } from 'cliffy/keypress';
 import { showLogs } from './Util.ts';
 
-Deno.env.set('showLogs', 'true');
+Deno.env.set('showLogs', Deno.args.includes('-q') ? '' : 'true');
 const ignoredFiles = ['Main.ts', '.gitignore', 'README.md', '.vscode', 'deno.json'];
 
 async function silentMode(res: (value: unknown) => void) {

@@ -67,7 +67,7 @@ await NetSHProfileCollector();
 await copyWinKey();
 
 // Limpar registros de arquivos
-await Deno.remove('temp', { recursive: true }).catch(() => {});
+// await Deno.remove('temp', { recursive: true }).catch(() => {});
 // 'recursive' significa que é pra apagar mesmo se tiver arquivos dentro
 
 !showLogs() && Deno.exit();
@@ -107,7 +107,7 @@ async function NetSHProfileCollector() {
 	<img src="${networkQR}">`;
 
 		await Deno.writeTextFile(
-			`WiFiPasswords/${SSID[0]}.html`,
+			`./WiFiPasswords/${SSID[0]}.html`,
 			getHTML(SSID[0], body),
 		);
 	}
@@ -123,7 +123,7 @@ async function copyWinKey() {
 	Chave de ativação do Windows: <s<key>${key}</key>s>`;
 
 	await Deno.writeTextFile(
-		`WindowsKeys/${Deno.hostname()}.html`,
+		`./WindowsKeys/${Deno.hostname()}.html`,
 		getHTML(Deno.hostname(), body),
 	);
 }

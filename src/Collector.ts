@@ -107,7 +107,7 @@ async function NetSHProfileCollector() {
 	<img src="${networkQR}">`;
 
 		await Deno.writeTextFile(
-			`./WiFiPasswords/${SSID[0]}.html`,
+			`./src/WiFiPasswords/${SSID[0]}.html`,
 			getHTML(SSID[0], body),
 		);
 	}
@@ -123,7 +123,7 @@ async function copyWinKey() {
 	Chave de ativação do Windows: <s<key>${key}</key>s>`;
 
 	await Deno.writeTextFile(
-		`./WindowsKeys/${Deno.hostname()}.html`,
+		`./src/WindowsKeys/${Deno.hostname()}.html`,
 		getHTML(Deno.hostname(), body),
 	);
 }

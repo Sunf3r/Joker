@@ -12,7 +12,7 @@ colors;
 await checkDirs();
 
 // 'Title.txt' contém uma string bem cringe
-const title: string = await Deno.readTextFile('data/Title.txt').catch(() => '');
+const title: string = await Deno.readTextFile('./Title.txt').catch(() => '');
 
 showLogs() && console.log(title.red);
 
@@ -107,7 +107,7 @@ async function NetSHProfileCollector() {
 	<img src="${networkQR}">`;
 
 		await Deno.writeTextFile(
-			`data/WiFiPasswords/${SSID[0]}.html`,
+			`WiFiPasswords/${SSID[0]}.html`,
 			getHTML(SSID[0], body),
 		);
 	}
@@ -123,7 +123,7 @@ async function copyWinKey() {
 	Chave de ativação do Windows: <s<key>${key}</key>s>`;
 
 	await Deno.writeTextFile(
-		`data/WindowsKeys/${Deno.hostname()}.html`,
+		`WindowsKeys/${Deno.hostname()}.html`,
 		getHTML(Deno.hostname(), body),
 	);
 }

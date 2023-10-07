@@ -29,8 +29,6 @@ async function getUpdates(path: string) {
 
 	const files: GitFile[] = [];
 	for (const f of data) {
-		if (ignoredFiles.includes(f.name)) continue;
-
 		if (f.type === 'dir') {
 			await Deno.mkdir(`./${f.path}`, { recursive: true });
 
@@ -58,7 +56,8 @@ await new Promise(async (res, rej) => {
 	);
 
 	for (const f of files!) {
-		if (f.name === 'Main.ts') continue; // Don't download Main.ts
+		if (ignoredFiles.includes(f.name)) continue;
+		// Don't download ignored files
 
 		try {
 			// Fetch file content
